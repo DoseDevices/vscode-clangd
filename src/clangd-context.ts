@@ -198,6 +198,27 @@ export class ClangdContext implements vscode.Disposable {
             return symbol;
           })
         },
+        // Filter diagnostics before VSCode displays them. Remove diagnostics
+        // whose message contains 'typedef redefinition'. This prevents noisy
+        // redefinition messages from showing in the Problems panel.
+        handleDiagnostics: (uri, diagnostics, next) => {
+
+          outputChannel.appendLine("Handling diagnostics for: " + uri);
+          try {
+            const filtered = diagnostics.filter(d => {
+              outputChannel.appendLine("Filtering diagnostic: " + JSON.stringify(d));
+              if (!d.message) return true;
+              outputChannel.appendLine(d.message);
+              outputChannel.appendLine("Filtering diagnostic: " + d.message);
+              return !d.message.includes('typedef redefinition') && !d.message.includes("In included file: expected expression");
+            });
+            return next(uri, filtered);
+          } catch (e) {
+            outputChannel.appendLine("Error filtering diagnostics: " + e);
+            // Fall back to default behavior on error
+            return next(uri, diagnostics);
+          }
+        },
       },
     };
 
